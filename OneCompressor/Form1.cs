@@ -1,0 +1,118 @@
+﻿using MaterialSkin;
+using MaterialSkin.Controls;
+using System.Diagnostics;
+using System.IO;
+using System.Windows.Forms;
+
+namespace OneCompressor
+{
+    public partial class Form1 : MaterialForm
+    {
+        public Form1()
+        {
+            InitializeComponent();
+
+            var materialSkinManager = MaterialSkinManager.Instance;
+            materialSkinManager.AddFormToManage(this);
+            materialSkinManager.Theme = MaterialSkinManager.Themes.LIGHT;
+            materialSkinManager.ColorScheme = new ColorScheme(Primary.Indigo500, Primary.Indigo700, Primary.Indigo100, Accent.Pink200, TextShade.WHITE);
+        }
+
+        private void materialRaisedButton2_Click(object sender, System.EventArgs e)
+        {
+            progress.Value = 0;
+            status.Text = "";
+            OpenFileDialog input = new OpenFileDialog();
+            input.Filter = "OT Bin Dosyaları (*.otbin)|*.otbin";
+            input.Title = "Çıkartılacak Dosyayı Seçin";
+            input.ShowDialog();
+
+            FolderBrowserDialog output = new FolderBrowserDialog();
+            output.Description = "Kaydedilecek Klasörü Seçin";
+            output.ShowDialog();
+
+            if (input.FileNames.Length != 0 && output.SelectedPath != "")
+            {
+                progress.Value = 10;
+                status.Text = "Dosyalar çıkartılıyor.";
+                var proc = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "library/oneteam.exe",
+                        Arguments = "x -y -o " + output.SelectedPath + " " + input.FileName + " *",
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+                proc.Start();
+                proc.WaitForExit();
+                progress.Value = 100;
+                status.Text = "Dosyalar çıkartıldı.";
+            }
+            else
+            {
+                MessageBox.Show("Dosya seçilmedi.");
+            }
+        }
+
+        private void materialRaisedButton1_Click(object sender, System.EventArgs e)
+        {
+            if (rom.Text != "" && romVersion.Text != "" && device.Text != "" && deviceCode.Text != "")
+            {
+                progress.Value = 0;
+                status.Text = "";
+                OpenFileDialog input = new OpenFileDialog();
+                input.Title = "Sıkıştırılacak Dosyaları Seçin";
+                input.Multiselect = true;
+                input.ShowDialog();
+
+                SaveFileDialog output = new SaveFileDialog();
+                output.Title = "Kaydedilecek Dosyayı Belirtin";
+                output.Filter = "OT Bin Dosyaları (*.otbin)|*.otbin";
+                output.ShowDialog();
+
+                if (input.FileNames.Length != 0 && output.FileName != "")
+                {
+                    var ini = new IniFile("rom.ini");
+                    ini.Write("romName", rom.Text);
+                    ini.Write("romVersion", romVersion.Text);
+                    ini.Write("deviceName", device.Text);
+                    ini.Write("deviceCode", deviceCode.Text);
+
+                    progress.Value = 10;
+                    status.Text = "Dosya listesi hazırlanıyor.";
+                    string compressFiles = " rom.ini";
+                    foreach (string file in input.FileNames)
+                    {
+                        compressFiles += " " + file;
+                    }
+                    progress.Value = 20;
+                    status.Text = "Dosyalar sıkıştırılıyor.";
+                    var proc = new Process
+                    {
+                        StartInfo = new ProcessStartInfo
+                        {
+                            FileName = "library/oneteam.exe",
+                            Arguments = "a -y " + output.FileName + " " + compressFiles,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        }
+                    };
+                    proc.Start();
+                    proc.WaitForExit();
+                    progress.Value = 100;
+                    status.Text = "Dosyalar sıkıştırıldı.";
+                    File.Delete("rom.ini");
+                }
+                else
+                {
+                    MessageBox.Show("Dosya seçilmedi.");
+                }
+            }else
+            {
+                MessageBox.Show("Rom bilgilerini girin.");
+            }
+        }
+    }
+}
